@@ -72,4 +72,5 @@ if result.token:
     st.success("CAPTCHA token received successfully!")
 else:
     st.info("Complete the CAPTCHA verification.")
+    st.caption("Deployment check: Turnstile v2")
 
