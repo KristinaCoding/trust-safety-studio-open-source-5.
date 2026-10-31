@@ -1,6 +1,29 @@
-
 import streamlit as st
+import requests
 
+
+def verify_turnstile_token(token):
+    secret_key = st.secrets.get("TURNSTILE_SECRET_KEY")
+
+    if not secret_key or not token:
+        return False
+
+    try:
+        response = requests.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={
+                "secret": secret_key,
+                "response": token,
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        result = response.json()
+
+        return result.get("success") is True
+
+    except (requests.RequestException, ValueError):
+        return False
 st.set_page_config(
     page_title="Cloudflare Turnstile Test",
     page_icon="🔐",
