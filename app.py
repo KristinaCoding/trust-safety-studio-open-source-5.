@@ -90,16 +90,6 @@ turnstile_component = st.components.v2.component(
 def on_token_change():
     pass
 
-
-# Render the CAPTCHA.
-result = turnstile_component(
- data={"site_key": st.secrets["TURNSTILE_SITE_KEY"]},
-    key="turnstile_test",
-    on_token_change=on_token_change,
-    default={"token": None},
-)
-
-
 if result.token:
     if st.button("Verify CAPTCHA with Cloudflare"):
         if verify_turnstile_token(result.token):
