@@ -52,14 +52,23 @@ def reset_session():
     st.session_state.user_id = None
     st.session_state.access_token = None
 
+def login(email, password, captcha_token):
+    if not captcha_token:
+        raise ValueError("CAPTCHA verification is required.")
 
-def login(email, password):
-    result = sb.auth.sign_in_with_password({"email": email, "password": password})
+    result = sb.auth.sign_in_with_password({
+        "email": email,
+        "password": password,
+        "options": {
+            "captcha_token": captcha_token
+        }
+    })
+
     if not result.session or not result.user:
         raise RuntimeError("No active session was returned.")
+
     st.session_state.user_id = result.user.id
     st.session_state.access_token = result.session.access_token
-
 
 def ensure_session():
     """Refresh the token and verify identity before any database access."""
