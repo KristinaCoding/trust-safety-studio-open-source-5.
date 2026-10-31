@@ -93,7 +93,7 @@ def on_token_change():
 
 # Render the CAPTCHA.
 result = turnstile_component(
-    data={"site_key": site_key},
+ data={"site_key": st.secrets["TURNSTILE_SITE_KEY"]},,
     key="turnstile_test",
     on_token_change=on_token_change,
     default={"token": None},
