@@ -219,7 +219,7 @@ if not ensure_session():
             email = st.text_input("Email", key="signup_email")
             password = st.text_input("Password (at least 12 characters)", type="password", key="signup_password")
             submitted = st.form_submit_button("Create account")
-       
+
         if submitted:
             captcha_token = signup_captcha.token
 
