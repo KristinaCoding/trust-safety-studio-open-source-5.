@@ -5,6 +5,91 @@ from datetime import datetime, timezone
 
 import streamlit as st
 from supabase import create_client
+# HTML for the Turnstile widget.
+HTML = """
+<div id="turnstile-widget"></div>
+"""
+
+# JavaScript for Streamlit Components v2.
+JS = """
+export default function(component) {
+    const { setStateValue, parentElement, data } = component;
+
+    const container = parentElement.querySelector("#turnstile-widget");
+    let widgetId = null;
+    let cancelled = false;
+    let retryTimer = null;
+
+    function renderWidget() {
+        if (cancelled) return;
+
+        if (!window.turnstile) {
+            retryTimer = setTimeout(renderWidget, 200);
+            return;
+        }
+
+        if (widgetId !== null || !container) return;
+
+        widgetId = window.turnstile.render(container, {
+            sitekey: data.site_key,
+
+            callback: (token) => {
+                setStateValue("token", token);
+            },
+
+            "expired-callback": () => {
+                setStateValue("token", null);
+            },
+
+            "error-callback": () => {
+                setStateValue("token", null);
+            },
+
+            "timeout-callback": () => {
+                setStateValue("token", null);
+            }
+        });
+    }
+
+    // Load the Cloudflare script if it is not already available.
+    if (!document.querySelector('script[data-turnstile-test]')) {
+        const script = document.createElement("script");
+        script.src =
+            "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+        script.async = true;
+        script.defer = true;
+        script.dataset.turnstileTest = "true";
+        document.head.appendChild(script);
+    }
+
+    renderWidget();
+
+    return () => {
+        cancelled = true;
+
+        if (retryTimer !== null) {
+            clearTimeout(retryTimer);
+        }
+
+        if (widgetId !== null && window.turnstile) {
+            window.turnstile.remove(widgetId);
+        }
+    };
+}
+"""
+
+# Register the bidirectional component.
+turnstile_component = st.components.v2.component(
+    "cloudflare_turnstile_test",
+    html=HTML,
+    js=JS,
+)
+
+
+# This callback registers "token" as a valid component state.
+def on_token_change():
+    pass
+
 
 st.set_page_config(page_title="Trust & Safety Studio | krisi.site", page_icon="🛡️", layout="wide")
 
@@ -52,14 +137,23 @@ def reset_session():
     st.session_state.user_id = None
     st.session_state.access_token = None
 
+def login(email, password, captcha_token):
+    if not captcha_token:
+        raise ValueError("CAPTCHA verification is required.")
 
-def login(email, password):
-    result = sb.auth.sign_in_with_password({"email": email, "password": password})
+    result = sb.auth.sign_in_with_password({
+        "email": email,
+        "password": password,
+        "options": {
+            "captcha_token": captcha_token
+        }
+    })
+
     if not result.session or not result.user:
         raise RuntimeError("No active session was returned.")
+
     st.session_state.user_id = result.user.id
     st.session_state.access_token = result.session.access_token
-
 
 def ensure_session():
     """Refresh the token and verify identity before any database access."""
@@ -85,30 +179,73 @@ if not ensure_session():
     st.info("Sign in or create an account to access your private workspace.")
     tab1, tab2 = st.tabs(["Sign in", "Create account"])
     with tab1:
+        signin_captcha = turnstile_component(
+            data={"site_key": st.secrets["TURNSTILE_SITE_KEY"]},
+            key="turnstile_signin",
+            on_token_change=on_token_change,
+            default={"token": None},
+        )
         with st.form("signin"):
             email = st.text_input("Email", key="signin_email")
             password = st.text_input("Password", type="password", key="signin_password")
             submitted = st.form_submit_button("Sign in")
+
         if submitted:
-            try:
-                login(email.strip(), password)
-                st.rerun()
-            except Exception:
-                st.error("Sign-in failed. Check your credentials and email confirmation.")
+            captcha_token = signin_captcha.token
+
+            if not captcha_token:
+                st.error("Please complete the CAPTCHA verification.")
+            else:
+                try:
+                    login(email.strip(), password, captcha_token)
+                    st.rerun()
+                except Exception:
+                    st.error(
+                        "Sign-in failed. Check your credentials, "
+                        "email confirmation, and CAPTCHA."
+                    )
+
+
     with tab2:
+        signup_captcha = turnstile_component(
+            data={"site_key": st.secrets["TURNSTILE_SITE_KEY"]},
+            key="turnstile_signup",
+            on_token_change=on_token_change,
+            default={"token": None},
+        )
+
         with st.form("signup"):
+
             email = st.text_input("Email", key="signup_email")
             password = st.text_input("Password (at least 12 characters)", type="password", key="signup_password")
             submitted = st.form_submit_button("Create account")
+
         if submitted:
+            captcha_token = signup_captcha.token
+
             if len(password) < 12:
                 st.error("Choose a password of at least 12 characters.")
+            elif not captcha_token:
+                st.error("Please complete the CAPTCHA verification.")
             else:
                 try:
-                    sb.auth.sign_up({"email": email.strip(), "password": password})
-                    st.success("If the address is eligible, check your email for confirmation, then sign in.")
+                    sb.auth.sign_up({
+                        "email": email.strip(),
+                        "password": password,
+                        "options": {
+                            "captcha_token": captcha_token
+                        }
+                    })
+                    st.success(
+                        "If the address is eligible, check your email "
+                        "for confirmation, then sign in."
+                    )
                 except Exception:
-                    st.error("Registration could not be completed. Please try again later.")
+                    st.error(
+                        "Registration could not be completed. "
+                        "Please try again later."
+                    )
+
     st.stop()
 
 uid = st.session_state.user_id

@@ -1,0 +1,6 @@
+# Local Streamlit secrets
+.streamlit/secrets.toml
+
+# Python temporary files
+__pycache__/
+*.pyc
