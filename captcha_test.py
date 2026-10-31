@@ -12,4 +12,3 @@ if not site_key:
 
 st.success("Turnstile Site Key is configured.")
 st.info("Next: render the CAPTCHA and receive its token.")
-)
