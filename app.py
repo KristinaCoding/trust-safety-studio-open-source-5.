@@ -90,6 +90,7 @@ turnstile_component = st.components.v2.component(
 def on_token_change():
     pass
 
+
 st.set_page_config(page_title="Trust & Safety Studio | krisi.site", page_icon="🛡️", layout="wide")
 
 st.markdown("""<style>
