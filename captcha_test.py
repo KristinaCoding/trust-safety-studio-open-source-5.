@@ -136,17 +136,14 @@ result = turnstile_component(
 )
 
 
-# Display the current CAPTCHA state.
 if result.token:
-    st.success("CAPTCHA token received successfully!")
-    st.info(
-        "The browser received a token. "
-        "Server-side verification is still required."
-    )
+    if st.button("Verify CAPTCHA with Cloudflare"):
+        if verify_turnstile_token(result.token):
+            st.success("CAPTCHA verified successfully by Cloudflare!")
+        else:
+            st.error(
+                "CAPTCHA verification failed or the token expired. "
+                "Refresh the page and try again."
+            )
 else:
     st.info("Complete the CAPTCHA verification.")
-
-
-st.divider()
-st.caption("Deployment check: Turnstile v3")
-st.caption("Development test only — not production authentication protection.")
