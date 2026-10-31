@@ -90,17 +90,6 @@ turnstile_component = st.components.v2.component(
 def on_token_change():
     pass
 
-if result.token:
-    if st.button("Verify CAPTCHA with Cloudflare"):
-        if verify_turnstile_token(result.token):
-            st.success("CAPTCHA verified successfully by Cloudflare!")
-        else:
-            st.error(
-                "CAPTCHA verification failed or the token expired. "
-                "Refresh the page and try again."
-            )
-else:
-    st.info("Complete the CAPTCHA verification.")
 st.set_page_config(page_title="Trust & Safety Studio | krisi.site", page_icon="🛡️", layout="wide")
 
 st.markdown("""<style>
