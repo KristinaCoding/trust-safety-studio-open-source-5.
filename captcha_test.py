@@ -65,7 +65,6 @@ turnstile_component = st.components.v2.component(
 result = turnstile_component(
     data={"site_key": site_key},
     key="turnstile_test",
-    default={"token": None},
 )
 
 if result.token:
