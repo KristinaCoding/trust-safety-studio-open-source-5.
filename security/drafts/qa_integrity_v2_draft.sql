@@ -4,13 +4,16 @@
 -- This migration validates polymorphic QA item references and prevents dangling
 -- references after source-row deletion or changes to source ownership/project.
 -- Existing data must be audited before deployment.
+-- SECURITY DEFINER must be owned by a tightly controlled DB role able to inspect
+-- both referenced tables despite RLS; never grant ownership to app users.
+-- Function code uses fully-qualified table names and an empty search_path.
 
 BEGIN;
 
 CREATE OR REPLACE FUNCTION public.validate_qa_item_reference()
 RETURNS trigger
 LANGUAGE plpgsql
-SECURITY INVOKER
+SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
@@ -53,7 +56,7 @@ FOR EACH ROW EXECUTE FUNCTION public.validate_qa_item_reference();
 CREATE OR REPLACE FUNCTION public.prevent_qa_source_orphaning()
 RETURNS trigger
 LANGUAGE plpgsql
-SECURITY INVOKER
+SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
@@ -70,7 +73,10 @@ BEGIN
         USING ERRCODE = '23503';
     END IF;
   END IF;
-  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
 END;
 $$;
 
@@ -86,10 +92,20 @@ COMMIT;
 
 -- IMPORTANT REVIEW NOTES:
 -- 1. This is a design draft, not a production-ready migration.
--- 2. Under RLS, SECURITY INVOKER may not see referenced rows for certain callers;
---    and the source trigger may not see all QA references. Review the trust model,
---    RLS privileges, and a tightly scoped SECURITY DEFINER approach if needed.
--- 3. Concurrent deletes/inserts and row locking must be tested for races.
+-- 2. SECURITY DEFINER bypass behavior depends on the function owner, FORCE RLS,
+--    and privileges. Verify exact Supabase deployment role and RLS semantics.
+--    Review function EXECUTE privileges and default PUBLIC grants.
+-- 3. FOR KEY SHARE is intended to serialize inserts with deletes/key updates.
+--    Test concurrency, lock ordering, and possible deadlocks in isolation.
 -- 4. Validate pre-existing QA data before enabling constraints/triggers.
 -- 5. Confirm allowed item_type literals, trigger ordering, app delete workflows,
 --    and migration/rollback strategy in an isolated test environment.
+
+-- TEST PLAN (do not run here):
+-- A. Valid QA insert succeeds for same user/project/source.
+-- B. Nonexistent source item_id is rejected (23503).
+-- C. Source from another user or project is rejected (23503).
+-- D. Delete/reassign source with QA fails; removing QA first allows deletion.
+-- E. Simultaneous QA insert and source delete cannot leave an orphan.
+-- F. Existing QA workflows and policy grants work for real authenticated roles.
+-- G. Verify a deployment rollback and restore on a disposable clone.
