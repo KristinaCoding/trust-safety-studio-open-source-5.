@@ -330,8 +330,26 @@ st.sidebar.caption("Professional workspace · Guided mode")
 pages = ["Home", "My Projects", "Client Onboarding", "Client Policies", "Ticket Intake", "Moderation Cases", "AI Annotation", "AI Dataset Intake", "Quality Assurance", "Reports", "Guides & Help"]
 if st.session_state.get("workspace_page") not in pages:
     st.session_state.workspace_page = "Home"
-section = st.sidebar.radio("Navigate", pages, key="workspace_page")
-st.sidebar.caption("Tip: Start on Home for step-by-step guidance.")
+st.sidebar.caption("WORKSPACE")
+for destination in ("Home", "My Projects"):
+    if st.sidebar.button(destination, key=f"nav_{destination}", use_container_width=True, type="primary" if st.session_state.workspace_page == destination else "secondary"):
+        st.session_state.workspace_page = destination
+        st.rerun()
+st.sidebar.caption("CLIENT SETUP")
+for destination in ("Client Onboarding", "Client Policies"):
+    if st.sidebar.button(destination, key=f"nav_{destination}", use_container_width=True):
+        st.session_state.workspace_page = destination
+        st.rerun()
+st.sidebar.caption("WORK & REVIEW")
+for destination in ("Ticket Intake", "Moderation Cases", "AI Annotation", "AI Dataset Intake", "Quality Assurance", "Reports"):
+    if st.sidebar.button(destination, key=f"nav_{destination}", use_container_width=True):
+        st.session_state.workspace_page = destination
+        st.rerun()
+st.sidebar.caption("SUPPORT")
+if st.sidebar.button("Guides & Help", key="nav_help", use_container_width=True):
+    st.session_state.workspace_page = "Guides & Help"
+    st.rerun()
+section = st.session_state.workspace_page
 
 try:
     if section == "Home":
