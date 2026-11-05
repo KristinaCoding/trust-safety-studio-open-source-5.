@@ -308,11 +308,17 @@ def delete_panel(title, data, table, project_id=None):
         confirm = st.checkbox("I understand this deletion is permanent", key=f"confirm_{table}_{project_id}")
         if st.button("Permanently delete", disabled=not confirm, key=f"button_{table}_{project_id}"):
             try:
-                # The initial schema does not have an item FK for QA; clear linked QA first.
                 if table in ("cases", "annotations"):
                     kind = "Moderation case" if table == "cases" else "AI annotation"
-                    sb.table("qa").delete().eq("user_id", uid).eq("project_id", project_id).eq("item_type", kind).eq("item_id", chosen).execute()
-                remove(table, chosen)
+                    result = sb.rpc("delete_reviewed_item", {
+                        "p_item_type": kind,
+                        "p_item_id": chosen,
+                    }).execute()
+                    if result.data is not True:
+                        st.error("Record was not deleted. Refresh and try again.")
+                        return
+                else:
+                    remove(table, chosen)
                 st.rerun()
             except Exception:
                 st.error("Deletion failed. Please try again.")
