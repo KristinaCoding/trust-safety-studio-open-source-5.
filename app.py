@@ -5,6 +5,13 @@ from datetime import datetime, timezone
 
 import streamlit as st
 from supabase import create_client
+from client_onboarding import render_client_onboarding
+from client_policies import render_client_policies
+from ticket_intake import render_ticket_intake
+from ai_dataset_intake import render_ai_dataset_intake
+from version_aware_qa import render_version_aware_qa
+from annotation_editor import render_annotation_editor
+from guided_workspace import render_home, render_help
 # HTML for the Turnstile widget.
 HTML = """
 <div id="turnstile-widget"></div>
@@ -108,12 +115,35 @@ html,body,p,label,button{font-family:'DM Sans',sans-serif}
 .krisi-hero p{color:#d6c1b5}
 [data-testid="stMetric"]{background:#2c1924;border:1px solid #78563e;padding:1rem}
 [data-testid="stForm"]{background:#21151c;border:1px solid #72503d;padding:1rem}
+
+/* KRISI guided workspace — editorial dark academia */
+:root{--krisi-gold:#d9b889;--krisi-ink:#120d11;--krisi-panel:#251720;--krisi-line:#6a4c40}
+.block-container{max-width:1280px;padding-top:1.4rem;padding-bottom:3rem}
+.krisi-hero{border-radius:18px;padding:1.7rem 2.1rem;box-shadow:0 18px 55px #0003}
+.krisi-hero h1{font-size:clamp(1.9rem,3.5vw,3.1rem);margin:.45rem 0}
+.krisi-eyebrow{font-size:.73rem;letter-spacing:.17em;font-weight:700;color:#d9b889;margin:.3rem 0 .8rem}
+.krisi-stat{background:linear-gradient(155deg,#30202a,#21161e);border:1px solid #684a42;border-radius:15px;padding:1.1rem 1.2rem;min-height:132px}
+.krisi-stat-label{color:#d9b889;font-size:.7rem;letter-spacing:.11em;font-weight:700}
+.krisi-stat-value{font:600 2.3rem Georgia,serif;color:#fff0df;margin:.4rem 0}
+.krisi-stat-note{font-size:.8rem;color:#d6c0b5}
+.krisi-project-name{font:600 1.8rem Georgia,serif;color:#f5e3d1;margin:.2rem 0}
+.krisi-project-type{font-size:.85rem;color:#cdb6a9;margin-bottom:1rem}
+[data-testid="stVerticalBlockBorderWrapper"]>div{border-radius:16px}
+[data-testid="stSidebar"] .stButton>button{border-radius:9px;text-align:left;justify-content:flex-start;border:1px solid transparent;background:transparent;color:#e9d8ca;min-height:2.35rem}
+[data-testid="stSidebar"] .stButton>button:hover{background:#37242e;border-color:#755443}
+[data-testid="stSidebar"] .stButton>button[kind="primary"]{background:#6d493c;border-color:#b28b64;color:#fff4e6}
+[data-testid="stMain"] .stButton>button{border-radius:9px;border-color:#886447}
+[data-testid="stMain"] .stButton>button[kind="primary"]{background:#a87c53;color:#170f12;border-color:#d1a779;font-weight:700}
+[data-testid="stMain"] .stButton>button:hover{border-color:#e3bf91}
+[data-testid="stExpander"]{border-radius:12px}
+[data-testid="stProgress"]{margin:.5rem 0}
+@media(max-width:800px){.krisi-stat{min-height:105px}.krisi-hero{padding:1.3rem}.block-container{padding-top:1rem}}
 </style>""", unsafe_allow_html=True)
 
 st.markdown("""<div class="krisi-hero"><small>KRISI.SITE / DIGITAL SAFETY</small>
 <h1>Trust &amp; Safety <em>Studio</em></h1>
 <p>Moderation, AI evaluation and quality assurance — your private workspace.</p>
-<small>DEVELOPMENT PREVIEW · DARK ACADEMIA</small></div>""", unsafe_allow_html=True)
+<small>GUIDED WORKSPACE · DEVELOPMENT PREVIEW</small></div>""", unsafe_allow_html=True)
 
 try:
     url = st.secrets["SUPABASE_URL"]
@@ -302,20 +332,62 @@ def delete_panel(title, data, table, project_id=None):
         confirm = st.checkbox("I understand this deletion is permanent", key=f"confirm_{table}_{project_id}")
         if st.button("Permanently delete", disabled=not confirm, key=f"button_{table}_{project_id}"):
             try:
-                # The initial schema does not have an item FK for QA; clear linked QA first.
                 if table in ("cases", "annotations"):
                     kind = "Moderation case" if table == "cases" else "AI annotation"
-                    sb.table("qa").delete().eq("user_id", uid).eq("project_id", project_id).eq("item_type", kind).eq("item_id", chosen).execute()
-                remove(table, chosen)
+                    result = sb.rpc("delete_reviewed_item", {
+                        "p_item_type": kind,
+                        "p_item_id": chosen,
+                    }).execute()
+                    if result.data is not True:
+                        st.error("Record was not deleted. Refresh and try again.")
+                        return
+                else:
+                    remove(table, chosen)
                 st.rerun()
             except Exception:
                 st.error("Deletion failed. Please try again.")
 
 
-section = st.sidebar.radio("Workspace", ["Dashboard", "Projects", "Moderation Cases", "AI Annotation", "Quality Assurance", "Reports"])
+st.sidebar.markdown("## ◈ KRISI")
+st.sidebar.caption("TRUST & SAFETY STUDIO")
+pages = ["Home", "My Projects", "Client Onboarding", "Client Policies", "Ticket Intake", "Moderation Cases", "AI Annotation", "AI Dataset Intake", "Quality Assurance", "Reports", "Guides & Help"]
+if st.session_state.get("workspace_page") not in pages:
+    st.session_state.workspace_page = "Home"
+
+nav_groups = [
+    ("WORKSPACE", [("⌂  Home", "Home"), ("▤  My Projects", "My Projects")]),
+    ("CLIENT SETUP", [("◇  Client Onboarding", "Client Onboarding"), ("≡  Client Policies", "Client Policies")]),
+    ("WORK & REVIEW", [
+        ("↳  Ticket Intake", "Ticket Intake"),
+        ("◫  Moderation Cases", "Moderation Cases"),
+        ("✦  AI Annotation", "AI Annotation"),
+        ("▦  AI Dataset Intake", "AI Dataset Intake"),
+        ("✓  Quality Assurance", "Quality Assurance"),
+        ("▥  Reports", "Reports"),
+    ]),
+    ("SUPPORT", [("?  Guides & Help", "Guides & Help")]),
+]
+for group_label, destinations in nav_groups:
+    st.sidebar.caption(group_label)
+    for label, destination in destinations:
+        selected = st.session_state.workspace_page == destination
+        if st.sidebar.button(
+            label, key=f"nav_{destination}", use_container_width=True,
+            type="primary" if selected else "secondary",
+        ):
+            st.session_state.workspace_page = destination
+            st.rerun()
+
+section = st.session_state.workspace_page
 
 try:
-    if section == "Dashboard":
+    if section == "Home":
+        render_home(rows, choose_project)
+
+    elif section == "Guides & Help":
+        render_help()
+
+    elif section == "Dashboard":
         st.subheader("Workspace overview")
         counts = [len(rows(t, "id")) for t in ("projects", "cases", "annotations", "qa")]
         for col, label, count in zip(st.columns(4), ("Projects", "Moderation cases", "Annotations", "QA reviews"), counts):
@@ -324,7 +396,7 @@ try:
         recent = sorted(rows("cases", "id,platform,category,decision,status,created_at"), key=lambda r: r["created_at"], reverse=True)[:10]
         show_table(recent)
 
-    elif section == "Projects":
+    elif section == "My Projects":
         st.subheader("Projects")
         with st.form("new_project", clear_on_submit=True):
             name = st.text_input("Project name")
@@ -340,6 +412,15 @@ try:
         data = rows("projects", "id,name,client_alias,project_type,status,created_at")
         show_table(data)
         delete_panel("Projects", data, "projects")
+
+    elif section == "Client Onboarding":
+        render_client_onboarding(sb, uid, rows, add, remove, choose_project)
+
+    elif section == "Client Policies":
+        render_client_policies(sb, uid, rows, add, remove, choose_project)
+
+    elif section == "Ticket Intake":
+        render_ticket_intake(sb, uid, rows, add, choose_project)
 
     elif section == "Moderation Cases":
         st.subheader("Moderation Case Manager")
@@ -379,34 +460,16 @@ try:
                 else:
                     add("annotations", {"project_id": pid, "sample_id": sample_id.strip(), "sample_text": sample_text.strip(), "label": label, "score": score, "notes": notes.strip()})
                     st.rerun()
-            data = rows("annotations", "id,sample_id,sample_text,label,score,notes,created_at", project_id=pid)
+            data = rows("annotations", "id,sample_id,sample_text,label,score,notes,version,created_at", project_id=pid)
             show_table(data)
+            render_annotation_editor(sb, uid, pid, data)
             delete_panel("AI Annotations", data, "annotations", pid)
 
+    elif section == "AI Dataset Intake":
+        render_ai_dataset_intake(sb, uid, rows, add, choose_project)
+
     elif section == "Quality Assurance":
-        st.subheader("Quality Assurance")
-        pid = choose_project("qa_project")
-        if pid:
-            item_type = st.selectbox("Review item type", ["Moderation case", "AI annotation"])
-            source = "cases" if item_type == "Moderation case" else "annotations"
-            items = rows(source, "id", project_id=pid)
-            if items:
-                with st.form("qa_form", clear_on_submit=True):
-                    item_id = st.selectbox("Record ID", [i["id"] for i in items])
-                    result = st.selectbox("QA outcome", ["Pass", "Needs correction", "Escalate"])
-                    notes = st.text_area("QA findings")
-                    submitted = st.form_submit_button("Save QA review")
-                if submitted:
-                    if not notes.strip():
-                        st.error("Add a QA note.")
-                    else:
-                        add("qa", {"project_id": pid, "item_type": item_type, "item_id": item_id, "result": result, "notes": notes.strip()})
-                        st.rerun()
-            else:
-                st.info("Add a case or annotation before reviewing it.")
-            data = rows("qa", "id,item_type,item_id,result,notes,created_at", project_id=pid)
-            show_table(data)
-            delete_panel("QA Reviews", data, "qa", pid)
+        render_version_aware_qa(sb, uid, rows, add, remove, choose_project)
 
     elif section == "Reports":
         st.subheader("Reports & Insights")
