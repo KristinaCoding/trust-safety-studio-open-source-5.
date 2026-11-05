@@ -10,6 +10,7 @@ from client_policies import render_client_policies
 from ticket_intake import render_ticket_intake
 from ai_dataset_intake import render_ai_dataset_intake
 from version_aware_qa import render_version_aware_qa
+from annotation_editor import render_annotation_editor
 # HTML for the Turnstile widget.
 HTML = """
 <div id="turnstile-widget"></div>
@@ -393,8 +394,9 @@ try:
                 else:
                     add("annotations", {"project_id": pid, "sample_id": sample_id.strip(), "sample_text": sample_text.strip(), "label": label, "score": score, "notes": notes.strip()})
                     st.rerun()
-            data = rows("annotations", "id,sample_id,sample_text,label,score,notes,created_at", project_id=pid)
+            data = rows("annotations", "id,sample_id,sample_text,label,score,notes,version,created_at", project_id=pid)
             show_table(data)
+            render_annotation_editor(sb, uid, pid, data)
             delete_panel("AI Annotations", data, "annotations", pid)
 
     elif section == "AI Dataset Intake":
