@@ -115,6 +115,29 @@ html,body,p,label,button{font-family:'DM Sans',sans-serif}
 .krisi-hero p{color:#d6c1b5}
 [data-testid="stMetric"]{background:#2c1924;border:1px solid #78563e;padding:1rem}
 [data-testid="stForm"]{background:#21151c;border:1px solid #72503d;padding:1rem}
+
+/* KRISI guided workspace — editorial dark academia */
+:root{--krisi-gold:#d9b889;--krisi-ink:#120d11;--krisi-panel:#251720;--krisi-line:#6a4c40}
+.block-container{max-width:1280px;padding-top:1.4rem;padding-bottom:3rem}
+.krisi-hero{border-radius:18px;padding:1.7rem 2.1rem;box-shadow:0 18px 55px #0003}
+.krisi-hero h1{font-size:clamp(1.9rem,3.5vw,3.1rem);margin:.45rem 0}
+.krisi-eyebrow{font-size:.73rem;letter-spacing:.17em;font-weight:700;color:#d9b889;margin:.3rem 0 .8rem}
+.krisi-stat{background:linear-gradient(155deg,#30202a,#21161e);border:1px solid #684a42;border-radius:15px;padding:1.1rem 1.2rem;min-height:132px}
+.krisi-stat-label{color:#d9b889;font-size:.7rem;letter-spacing:.11em;font-weight:700}
+.krisi-stat-value{font:600 2.3rem Georgia,serif;color:#fff0df;margin:.4rem 0}
+.krisi-stat-note{font-size:.8rem;color:#d6c0b5}
+.krisi-project-name{font:600 1.8rem Georgia,serif;color:#f5e3d1;margin:.2rem 0}
+.krisi-project-type{font-size:.85rem;color:#cdb6a9;margin-bottom:1rem}
+[data-testid="stVerticalBlockBorderWrapper"]>div{border-radius:16px}
+[data-testid="stSidebar"] .stButton>button{border-radius:9px;text-align:left;justify-content:flex-start;border:1px solid transparent;background:transparent;color:#e9d8ca;min-height:2.35rem}
+[data-testid="stSidebar"] .stButton>button:hover{background:#37242e;border-color:#755443}
+[data-testid="stSidebar"] .stButton>button[kind="primary"]{background:#6d493c;border-color:#b28b64;color:#fff4e6}
+[data-testid="stMain"] .stButton>button{border-radius:9px;border-color:#886447}
+[data-testid="stMain"] .stButton>button[kind="primary"]{background:#a87c53;color:#170f12;border-color:#d1a779;font-weight:700}
+[data-testid="stMain"] .stButton>button:hover{border-color:#e3bf91}
+[data-testid="stExpander"]{border-radius:12px}
+[data-testid="stProgress"]{margin:.5rem 0}
+@media(max-width:800px){.krisi-stat{min-height:105px}.krisi-hero{padding:1.3rem}.block-container{padding-top:1rem}}
 </style>""", unsafe_allow_html=True)
 
 st.markdown("""<div class="krisi-hero"><small>KRISI.SITE / DIGITAL SAFETY</small>
@@ -325,30 +348,36 @@ def delete_panel(title, data, table, project_id=None):
                 st.error("Deletion failed. Please try again.")
 
 
-st.sidebar.markdown("### KRISI Studio")
-st.sidebar.caption("Professional workspace · Guided mode")
+st.sidebar.markdown("## ◈ KRISI")
+st.sidebar.caption("TRUST & SAFETY STUDIO")
 pages = ["Home", "My Projects", "Client Onboarding", "Client Policies", "Ticket Intake", "Moderation Cases", "AI Annotation", "AI Dataset Intake", "Quality Assurance", "Reports", "Guides & Help"]
 if st.session_state.get("workspace_page") not in pages:
     st.session_state.workspace_page = "Home"
-st.sidebar.caption("WORKSPACE")
-for destination in ("Home", "My Projects"):
-    if st.sidebar.button(destination, key=f"nav_{destination}", use_container_width=True, type="primary" if st.session_state.workspace_page == destination else "secondary"):
-        st.session_state.workspace_page = destination
-        st.rerun()
-st.sidebar.caption("CLIENT SETUP")
-for destination in ("Client Onboarding", "Client Policies"):
-    if st.sidebar.button(destination, key=f"nav_{destination}", use_container_width=True):
-        st.session_state.workspace_page = destination
-        st.rerun()
-st.sidebar.caption("WORK & REVIEW")
-for destination in ("Ticket Intake", "Moderation Cases", "AI Annotation", "AI Dataset Intake", "Quality Assurance", "Reports"):
-    if st.sidebar.button(destination, key=f"nav_{destination}", use_container_width=True):
-        st.session_state.workspace_page = destination
-        st.rerun()
-st.sidebar.caption("SUPPORT")
-if st.sidebar.button("Guides & Help", key="nav_help", use_container_width=True):
-    st.session_state.workspace_page = "Guides & Help"
-    st.rerun()
+
+nav_groups = [
+    ("WORKSPACE", [("⌂  Home", "Home"), ("▤  My Projects", "My Projects")]),
+    ("CLIENT SETUP", [("◇  Client Onboarding", "Client Onboarding"), ("≡  Client Policies", "Client Policies")]),
+    ("WORK & REVIEW", [
+        ("↳  Ticket Intake", "Ticket Intake"),
+        ("◫  Moderation Cases", "Moderation Cases"),
+        ("✦  AI Annotation", "AI Annotation"),
+        ("▦  AI Dataset Intake", "AI Dataset Intake"),
+        ("✓  Quality Assurance", "Quality Assurance"),
+        ("▥  Reports", "Reports"),
+    ]),
+    ("SUPPORT", [("?  Guides & Help", "Guides & Help")]),
+]
+for group_label, destinations in nav_groups:
+    st.sidebar.caption(group_label)
+    for label, destination in destinations:
+        selected = st.session_state.workspace_page == destination
+        if st.sidebar.button(
+            label, key=f"nav_{destination}", use_container_width=True,
+            type="primary" if selected else "secondary",
+        ):
+            st.session_state.workspace_page = destination
+            st.rerun()
+
 section = st.session_state.workspace_page
 
 try:
