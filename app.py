@@ -7,6 +7,7 @@ import streamlit as st
 from supabase import create_client
 from client_onboarding import render_client_onboarding
 from client_policies import render_client_policies
+from ticket_intake import render_ticket_intake
 # HTML for the Turnstile widget.
 HTML = """
 <div id="turnstile-widget"></div>
@@ -314,7 +315,7 @@ def delete_panel(title, data, table, project_id=None):
                 st.error("Deletion failed. Please try again.")
 
 
-section = st.sidebar.radio("Workspace", ["Dashboard", "Projects", "Client Onboarding", "Client Policies", "Moderation Cases", "AI Annotation", "Quality Assurance", "Reports"])
+section = st.sidebar.radio("Workspace", ["Dashboard", "Projects", "Client Onboarding", "Client Policies", "Ticket Intake", "Moderation Cases", "AI Annotation", "Quality Assurance", "Reports"])
 
 try:
     if section == "Dashboard":
@@ -348,6 +349,9 @@ try:
 
     elif section == "Client Policies":
         render_client_policies(sb, uid, rows, add, remove, choose_project)
+
+    elif section == "Ticket Intake":
+        render_ticket_intake(sb, uid, rows, add, choose_project)
 
     elif section == "Moderation Cases":
         st.subheader("Moderation Case Manager")
