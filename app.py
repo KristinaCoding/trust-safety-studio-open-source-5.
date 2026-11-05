@@ -8,6 +8,7 @@ from supabase import create_client
 from client_onboarding import render_client_onboarding
 from client_policies import render_client_policies
 from ticket_intake import render_ticket_intake
+from ai_dataset_intake import render_ai_dataset_intake
 # HTML for the Turnstile widget.
 HTML = """
 <div id="turnstile-widget"></div>
@@ -315,7 +316,7 @@ def delete_panel(title, data, table, project_id=None):
                 st.error("Deletion failed. Please try again.")
 
 
-section = st.sidebar.radio("Workspace", ["Dashboard", "Projects", "Client Onboarding", "Client Policies", "Ticket Intake", "Moderation Cases", "AI Annotation", "Quality Assurance", "Reports"])
+section = st.sidebar.radio("Workspace", ["Dashboard", "Projects", "Client Onboarding", "Client Policies", "Ticket Intake", "Moderation Cases", "AI Annotation", "AI Dataset Intake", "Quality Assurance", "Reports"])
 
 try:
     if section == "Dashboard":
@@ -394,6 +395,9 @@ try:
             data = rows("annotations", "id,sample_id,sample_text,label,score,notes,created_at", project_id=pid)
             show_table(data)
             delete_panel("AI Annotations", data, "annotations", pid)
+
+    elif section == "AI Dataset Intake":
+        render_ai_dataset_intake(sb, uid, rows, add, choose_project)
 
     elif section == "Quality Assurance":
         st.subheader("Quality Assurance")
