@@ -2,7 +2,7 @@
 import streamlit as st
 
 STEPS = [
-    ("Create a project", "Projects", "Give your work a home before adding client details or reviewing content."),
+    ("Create a project", "My Projects", "Give your work a home before adding client details or reviewing content."),
     ("Onboard your client", "Client Onboarding", "Record the fictional client brief and working arrangements."),
     ("Set your policies", "Client Policies", "Add the rules that will guide review decisions."),
     ("Process work", "Ticket Intake", "Import tickets, manage cases, or annotate AI samples."),
@@ -22,13 +22,13 @@ def render_home(rows, choose_project):
     annotations = rows("annotations", "id,project_id")
     qa = rows("qa", "id,project_id")
     cols = st.columns(4)
-    for col, label, value in zip(cols, ("Projects", "Cases", "Annotations", "QA reviews"), (len(projects), len(cases), len(annotations), len(qa))):
+    for col, label, value in zip(cols, ("My Projects", "Cases", "Annotations", "QA reviews"), (len(projects), len(cases), len(annotations), len(qa))):
         col.metric(label, value)
     st.markdown("### Your guided workflow")
     if not projects:
         st.info("Start by creating a project. Your guide will adapt as you add records.")
         if st.button("Create my first project →", type="primary", use_container_width=True):
-            navigate("Projects")
+            navigate("My Projects")
         return
 
     pid = choose_project("home_guide_project")
