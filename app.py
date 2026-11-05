@@ -11,6 +11,7 @@ from ticket_intake import render_ticket_intake
 from ai_dataset_intake import render_ai_dataset_intake
 from version_aware_qa import render_version_aware_qa
 from annotation_editor import render_annotation_editor
+from guided_workspace import render_home, render_help
 # HTML for the Turnstile widget.
 HTML = """
 <div id="turnstile-widget"></div>
@@ -119,7 +120,7 @@ html,body,p,label,button{font-family:'DM Sans',sans-serif}
 st.markdown("""<div class="krisi-hero"><small>KRISI.SITE / DIGITAL SAFETY</small>
 <h1>Trust &amp; Safety <em>Studio</em></h1>
 <p>Moderation, AI evaluation and quality assurance — your private workspace.</p>
-<small>DEVELOPMENT PREVIEW · DARK ACADEMIA</small></div>""", unsafe_allow_html=True)
+<small>GUIDED WORKSPACE · DEVELOPMENT PREVIEW</small></div>""", unsafe_allow_html=True)
 
 try:
     url = st.secrets["SUPABASE_URL"]
@@ -324,10 +325,22 @@ def delete_panel(title, data, table, project_id=None):
                 st.error("Deletion failed. Please try again.")
 
 
-section = st.sidebar.radio("Workspace", ["Dashboard", "Projects", "Client Onboarding", "Client Policies", "Ticket Intake", "Moderation Cases", "AI Annotation", "AI Dataset Intake", "Quality Assurance", "Reports"])
+st.sidebar.markdown("### KRISI Studio")
+st.sidebar.caption("Professional workspace · Guided mode")
+pages = ["Home", "My Projects", "Client Onboarding", "Client Policies", "Ticket Intake", "Moderation Cases", "AI Annotation", "AI Dataset Intake", "Quality Assurance", "Reports", "Guides & Help"]
+if st.session_state.get("workspace_page") not in pages:
+    st.session_state.workspace_page = "Home"
+section = st.sidebar.radio("Navigate", pages, key="workspace_page")
+st.sidebar.caption("Tip: Start on Home for step-by-step guidance.")
 
 try:
-    if section == "Dashboard":
+    if section == "Home":
+        render_home(rows, choose_project)
+
+    elif section == "Guides & Help":
+        render_help()
+
+    elif section == "Dashboard":
         st.subheader("Workspace overview")
         counts = [len(rows(t, "id")) for t in ("projects", "cases", "annotations", "qa")]
         for col, label, count in zip(st.columns(4), ("Projects", "Moderation cases", "Annotations", "QA reviews"), counts):
@@ -336,7 +349,7 @@ try:
         recent = sorted(rows("cases", "id,platform,category,decision,status,created_at"), key=lambda r: r["created_at"], reverse=True)[:10]
         show_table(recent)
 
-    elif section == "Projects":
+    elif section == "My Projects":
         st.subheader("Projects")
         with st.form("new_project", clear_on_submit=True):
             name = st.text_input("Project name")
