@@ -9,6 +9,7 @@ from client_onboarding import render_client_onboarding
 from client_policies import render_client_policies
 from ticket_intake import render_ticket_intake
 from ai_dataset_intake import render_ai_dataset_intake
+from version_aware_qa import render_version_aware_qa
 # HTML for the Turnstile widget.
 HTML = """
 <div id="turnstile-widget"></div>
@@ -400,29 +401,7 @@ try:
         render_ai_dataset_intake(sb, uid, rows, add, choose_project)
 
     elif section == "Quality Assurance":
-        st.subheader("Quality Assurance")
-        pid = choose_project("qa_project")
-        if pid:
-            item_type = st.selectbox("Review item type", ["Moderation case", "AI annotation"])
-            source = "cases" if item_type == "Moderation case" else "annotations"
-            items = rows(source, "id", project_id=pid)
-            if items:
-                with st.form("qa_form", clear_on_submit=True):
-                    item_id = st.selectbox("Record ID", [i["id"] for i in items])
-                    result = st.selectbox("QA outcome", ["Pass", "Needs correction", "Escalate"])
-                    notes = st.text_area("QA findings")
-                    submitted = st.form_submit_button("Save QA review")
-                if submitted:
-                    if not notes.strip():
-                        st.error("Add a QA note.")
-                    else:
-                        add("qa", {"project_id": pid, "item_type": item_type, "item_id": item_id, "result": result, "notes": notes.strip()})
-                        st.rerun()
-            else:
-                st.info("Add a case or annotation before reviewing it.")
-            data = rows("qa", "id,item_type,item_id,result,notes,created_at", project_id=pid)
-            show_table(data)
-            delete_panel("QA Reviews", data, "qa", pid)
+        render_version_aware_qa(sb, uid, rows, add, remove, choose_project)
 
     elif section == "Reports":
         st.subheader("Reports & Insights")
